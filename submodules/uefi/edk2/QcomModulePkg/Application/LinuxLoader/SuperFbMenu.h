@@ -56,7 +56,7 @@
 
 #define SFB_DESC_CHARS       48
 #define SFB_PATH_CHARS       256
-#define SFB_MAX_ENTRIES      24
+#define SFB_MAX_ENTRIES      25
 #define SFB_MAX_DIR_ENTRIES  128
 
 /* Deepest submenu nesting allowed. Bounds the recursion when a chain of
@@ -80,7 +80,8 @@ typedef enum {
   /* Power management actions offered at the end of the menu and on the
    * fastboot mode screen. */
   SfbEntryPowerOff,
-  SfbEntryRestart
+  SfbEntryRestart,
+  SfbEntryVendorFastboot
 } SFB_ENTRY_KIND;
 
 typedef struct {

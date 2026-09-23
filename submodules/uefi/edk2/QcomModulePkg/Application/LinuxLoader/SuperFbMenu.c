@@ -10,6 +10,7 @@
 
 #include "SuperFbMenu.h"
 
+#include <Library/AtRebootLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
@@ -443,6 +444,11 @@ SfbRunBootMenu (VOID)
     case SfbEntryFastboot:
       SfbFreeMenu (&Menu);
       return TRUE;
+
+    case SfbEntryVendorFastboot:
+      SfbShowActionScreen (L"Rebooting to Bootloader...");
+      AtRebootDevice (FASTBOOT_MODE);
+      break;
 
     case SfbEntrySelector:
       SfbRunFileBrowser ();

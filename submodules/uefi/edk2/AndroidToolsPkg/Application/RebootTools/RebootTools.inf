@@ -21,6 +21,7 @@
   AndroidToolsPkg/AndroidToolsPkg.dec
 
 [LibraryClasses]
+  AtRebootLib
   AndroidToolsUi
   BaseLib
   BaseMemoryLib

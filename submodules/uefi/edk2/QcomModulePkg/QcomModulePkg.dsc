@@ -56,6 +56,7 @@
 [LibraryClasses.common]
   MenuInputLib|AndroidToolsPkg/Library/MenuInputLib/MenuInputLib.inf
   MenuConsoleLib|AndroidToolsPkg/Library/MenuConsoleLib/MenuConsoleLib.inf
+  AtRebootLib|AndroidToolsPkg/Library/AtRebootLib/AtRebootLib.inf
   BaseStackCheckLib|MdePkg/Library/BaseStackCheckLib/BaseStackCheckLib.inf
   DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
   MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf

@@ -1,6 +1,6 @@
 /** @file
  *  RebootTools - a standalone UEFI tool launched from the super-fastboot boot
- *  menu. Offers four reboot targets (Fastbootd, Bootloader, Recovery, System).
+ *  menu. Offers three reboot targets (Fastbootd, Recovery, System).
  *
  *  RebootDevice and the misc-partition BCB write are ported from the r32 tree
  *  (ShutdownServices.c / Recovery.c) but trimmed to the self-contained paths:
@@ -29,23 +29,6 @@
 #endif
 
 /* ---- ported r32 reboot/recovery helpers --------------------------------- */
-
-VOID
-AtRebootDevice (
-  IN UINT8 Reason
-  )
-{
-  AT_RESET_DATA ResetData;
-  EFI_STATUS    Status;
-
-  Status = (Reason == NORMAL_MODE) ? EFI_SUCCESS : EFI_INVALID_PARAMETER;
-
-  StrnCpyS (ResetData.DataBuffer, ARRAY_SIZE (ResetData.DataBuffer),
-            (CONST CHAR16 *)AT_RESET_PARAM, ARRAY_SIZE (AT_RESET_PARAM) - 1);
-  ResetData.Bdata = Reason;
-
-  gRT->ResetSystem (EfiResetCold, Status, sizeof (ResetData), &ResetData);
-}
 
 EFI_STATUS
 AtWriteRecoveryMessage (
@@ -133,7 +116,6 @@ RebootToolsEntry (
 {
   STATIC CONST CHAR16 *Items[] = {
     L"Reboot to Fastbootd",
-    L"Reboot to Bootloader",
     L"Reboot to Recovery",
     L"Reboot to System",
     L"Back",
@@ -166,12 +148,7 @@ RebootToolsEntry (
       AtRebootDevice (NORMAL_MODE);
       break;
 
-    case 1:  /* Reboot to Bootloader */
-      AtUiShowMessage (L"Rebooting to Bootloader...");
-      AtRebootDevice (FASTBOOT_MODE);
-      break;
-
-    case 2:  /* Reboot to Recovery */
+    case 1:  /* Reboot to Recovery */
       AtUiShowMessage (L"Rebooting to Recovery...");
       Status = AtWriteRecoveryMessage (AT_RECOVERY_BOOT_RECOVERY);
       if (EFI_ERROR (Status)) {
@@ -181,12 +158,12 @@ RebootToolsEntry (
       AtRebootDevice (NORMAL_MODE);
       break;
 
-    case 3:  /* Reboot to System */
+    case 2:  /* Reboot to System */
       AtUiShowMessage (L"Rebooting to System...");
       AtRebootDevice (NORMAL_MODE);
       break;
 
-    case 4:  /* Back - exit to the boot menu */
+    case 3:  /* Back - exit to the boot menu */
       return EFI_SUCCESS;
 
     default:
