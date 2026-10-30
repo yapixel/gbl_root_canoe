@@ -64,7 +64,7 @@
 #define SFB_PATH_CHARS       256
 /* Room for an EDK2-shell-style argument line, e.g. "--dtb boot.dtb". */
 #define SFB_ARGS_CHARS       128
-#define SFB_MAX_ENTRIES      24
+#define SFB_MAX_ENTRIES      25
 #define SFB_MAX_DIR_ENTRIES  128
 
 /* Deepest submenu nesting allowed. Bounds the recursion when a chain of
@@ -81,6 +81,7 @@ typedef enum {
    * submenu. Volume/Path name the ENTRIES file; Desc is the submenu title. */
   SfbEntrySubmenu,
   /* Built-in entries; no backing file, handled in code. */
+  SfbEntryVendorFastboot,
   /* Opens the Advanced submenu (fastboot, USB mass-storage export, grouped
    * volumes). */
   SfbEntryAdvanced,

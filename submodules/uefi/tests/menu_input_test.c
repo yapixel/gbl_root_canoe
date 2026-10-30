@@ -1,6 +1,7 @@
 /* Host simulation of the production interactive input library. */
 /* Declare libc before EDK2's X64 headers push hidden symbol visibility. */
 #include <assert.h>
+#include <setjmp.h>
 #include <stdio.h>
 #include <string.h>
 #undef NULL
@@ -9,6 +10,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/SimpleTextIn.h>
 #include <AndroidToolsUi.h>
+#include <SuperFbMenu.h>
 
 EFI_BOOT_SERVICES *gBS;
 EFI_SYSTEM_TABLE *gST;
@@ -188,6 +190,88 @@ static void PollTests(void) {
   assert(FastbootPollActionKey() == FbActionPowerOff && !stall_calls);
 }
 
+#ifndef NORMAL_MODE
+#define NORMAL_MODE 0x0
+#endif
+#ifndef FASTBOOT_MODE
+#define FASTBOOT_MODE 0x2
+#endif
+
+static VOID *EFIAPI ZeroMem(VOID *Buffer, UINTN Length) {
+  return memset(Buffer, 0, Length);
+}
+static RETURN_STATUS EFIAPI StrnCpyS(CHAR16 *Dest, UINTN DestMax,
+                                     CONST CHAR16 *Src, UINTN Length) {
+  UINTN i = 0;
+  assert(Dest != NULL && Src != NULL && DestMax > 0);
+  for (; i < Length && i + 1 < DestMax && Src[i] != L'\0'; i++)
+    Dest[i] = Src[i];
+  Dest[i] = L'\0';
+  return RETURN_SUCCESS;
+}
+
+static jmp_buf reboot_jmp;
+static UINT8 last_reboot_reason;
+static CHAR16 last_action_msg[SFB_DESC_CHARS];
+static VOID SfbScanVolumes(SFB_MENU_STATE *Menu) {
+  ZeroMem(&Menu->Entry[0], sizeof(Menu->Entry[0]));
+  Menu->Entry[0].Kind = SfbEntryEfiFile;
+  StrnCpyS(Menu->Entry[0].Desc, SFB_DESC_CHARS, L"Android", SFB_DESC_CHARS - 1);
+  Menu->Count = 1;
+}
+static VOID SfbAppendCustomEntry(SFB_MENU_STATE *Menu) {}
+static VOID SfbResolveDefault(SFB_MENU_STATE *Menu) { Menu->DefaultIndex = 0; }
+VOID SfbFreeMenu(SFB_MENU_STATE *Menu) { Menu->Count = 0; }
+static VOID SfbDrawMenu(CONST SFB_MENU_STATE *Menu, UINTN Cursor, CONST CHAR16 *Title) { draws++; }
+BOOLEAN SfbRunAdvancedMenu(VOID) { return FALSE; }
+static VOID SfbRunSubMenu(EFI_HANDLE Vol, CONST CHAR16 *Path, CONST CHAR16 *Title, UINTN Depth) {}
+VOID SfbShowActionScreen(CONST CHAR16 *Msg) {
+  StrnCpyS(last_action_msg, SFB_DESC_CHARS, Msg, SFB_DESC_CHARS - 1);
+}
+VOID ShutdownDevice(VOID) {}
+VOID RebootDevice(UINT8 Reason) {
+  last_reboot_reason = Reason;
+  longjmp(reboot_jmp, 1);
+}
+EFI_STATUS SfbLaunchEntry(CONST SFB_BOOT_ENTRY *Entry, BOOLEAN Temp, BOOLEAN Clear) {
+  return EFI_SUCCESS;
+}
+VOID SfbReportStatus(CONST CHAR16 *What, EFI_STATUS Status) {}
+
+#include "sfb_entries.inc"
+#include "sfb_menu.inc"
+
+static int Str16Eq(CONST CHAR16 *a, CONST CHAR16 *b)
+{
+  while (*a != L'\0' && *a == *b) { a++; b++; }
+  return *a == *b;
+}
+
+static void BootMenuVendorFastbootTests(void)
+{
+  SFB_MENU_STATE menu = {0};
+  assert(SFB_MAX_ENTRIES == 25);
+  SfbBuildMenu(&menu);
+  assert(menu.Count == 5);
+  assert(Str16Eq(menu.Entry[0].Desc, L"Android"));
+  assert(Str16Eq(menu.Entry[1].Desc, L"Reboot to Bootloader"));
+  assert(Str16Eq(menu.Entry[2].Desc, L"Advanced"));
+  assert(Str16Eq(menu.Entry[3].Desc, L"Power Off"));
+  assert(Str16Eq(menu.Entry[4].Desc, L"Restart"));
+
+  Init();
+  last_reboot_reason = 0xff;
+  last_action_msg[0] = L'\0';
+  Add(0, SCAN_DOWN);
+  Add(20, SCAN_NULL);
+  if (setjmp(reboot_jmp) == 0) {
+    (void)SfbRunBootMenu();
+    assert(!"SfbRunBootMenu returned instead of rebooting to vendor fastboot");
+  }
+  assert(last_reboot_reason == FASTBOOT_MODE);
+  assert(Str16Eq(last_action_msg, L"Rebooting to Bootloader..."));
+}
+
 int main(void)
 {
   Init();
@@ -342,6 +426,7 @@ int main(void)
   assert(AtUiWaitForKey(0) == AtKeyDown && animate_calls == 100);
   Init(); Add(0, SCAN_NULL);
   assert(AtUiWaitForKey(0) == AtKeySelect && !animate_calls);
-  puts("PASS: undebounced volume taps/holds/redraw backlog, direction changes, boundary flush, debounced power confirm, drained power repeats, timeout/errors, continuous idle animation, non-blocking Fastboot actions incl. exit row, slow-work quiet accounting");
+  BootMenuVendorFastbootTests();
+  puts("PASS: undebounced volume taps/holds/redraw backlog, direction changes, boundary flush, debounced power confirm, drained power repeats, timeout/errors, continuous idle animation, non-blocking Fastboot actions incl. exit row, vendor fastboot main menu, slow-work quiet accounting");
   return 0;
 }

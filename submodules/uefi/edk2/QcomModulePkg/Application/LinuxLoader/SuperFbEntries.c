@@ -894,6 +894,7 @@ SfbBuildMenu (OUT SFB_MENU_STATE *Menu)
   SfbScanVolumes (Menu);
   SfbAppendCustomEntry (Menu);
 
+  SfbAppendBuiltIn (Menu, SfbEntryVendorFastboot, L"Reboot to Bootloader");
   SfbAppendBuiltIn (Menu, SfbEntryAdvanced, L"Advanced");
   SfbAppendBuiltIn (Menu, SfbEntryPowerOff, L"Power Off");
   SfbAppendBuiltIn (Menu, SfbEntryRestart, L"Restart");

@@ -460,6 +460,11 @@ SfbRunBootMenu (VOID)
     }
 
     switch (Menu.Entry[Chosen].Kind) {
+    case SfbEntryVendorFastboot:
+      SfbShowActionScreen (L"Rebooting to Bootloader...");
+      RebootDevice (FASTBOOT_MODE);
+      break;
+
     case SfbEntryAdvanced:
       /* Advanced owns fastboot now: a TRUE return means the user picked
        * "Enter Fastboot" there and the caller should hand over to it. */
