@@ -1022,12 +1022,24 @@ WriteSections64 (
           case R_AARCH64_LD64_GOT_LO12_NC:
             //
             // Convert into an ADD instruction - see R_AARCH64_ADR_GOT_PAGE below.
+            // Leave ADR intact if the linker already relaxed ADRP+LDR to NOP+ADR.
             //
+            if ((*(UINT32 *)Targ & 0x9f000000) == 0x10000000) {
+              if ((SymShdr->sh_addr - SecShdr->sh_addr) !=
+                  (mCoffSectionsOffset[Sym->st_shndx] - SecOffset)) {
+                Error (NULL, 0, 3000, "Invalid", "WriteSections64(): %s AARCH64 relative relocations require identical ELF and PE/COFF section offsets",
+                  mInImageName);
+              }
+              break;
+            }
             *(UINT32 *)Targ &= 0x3ff;
             *(UINT32 *)Targ |= 0x91000000 | ((Sym->st_value & 0xfff) << 10);
             break;
 
           case R_AARCH64_ADR_GOT_PAGE:
+            if (*(UINT32 *)Targ == 0xd503201f) {
+              break;
+            }
             //
             // This relocation points to the GOT entry that contains the absolute
             // address of the symbol we are referring to. Since EDK2 only uses

@@ -145,7 +145,7 @@ Ext4OpenSuperblock (
   }
 
   // At the time of writing, it's the only supported checksum.
-  if (Partition->FeaturesCompat & EXT4_FEATURE_RO_COMPAT_METADATA_CSUM &&
+  if ((Partition->FeaturesRoCompat & EXT4_FEATURE_RO_COMPAT_METADATA_CSUM) != 0 &&
       Sb->s_checksum_type != EXT4_CHECKSUM_CRC32C) {
     return EFI_UNSUPPORTED;
   }

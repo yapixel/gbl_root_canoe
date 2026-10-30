@@ -22,6 +22,10 @@ build:
 		echo "Build failed"; \
 		exit 1; \
 	fi
+	@if command -v llvm-objdump >/dev/null 2>&1 && llvm-objdump -d edk2/Build/RELEASE_CLANG35/AARCH64/LinuxLoader.efi | grep -q 'adrp[[:space:]]*xzr'; then \
+		echo "Fatal: corrupted AARCH64 GOT relaxation in BDS.efi"; \
+		exit 1; \
+	fi
 	mkdir -p ./build
 	cp edk2/Build/RELEASE_CLANG35/AARCH64/LinuxLoader.efi ./build/BDS.efi
 	@echo "BDS built successfully: build/BDS.efi"
@@ -44,6 +48,10 @@ tools:
 	@TOOLS_DIR=edk2/Build/AndroidToolsPkg/RELEASE_CLANG35/AARCH64; \
 	if [ ! -f $$TOOLS_DIR/RebootTools.efi ] || [ ! -f $$TOOLS_DIR/ArbTools.efi ] || [ ! -f $$TOOLS_DIR/BLTools.efi ]; then \
 		echo "AndroidToolsPkg build failed"; \
+		exit 1; \
+	fi; \
+	if command -v llvm-objdump >/dev/null 2>&1 && llvm-objdump -d $$TOOLS_DIR/RebootTools.efi $$TOOLS_DIR/ArbTools.efi $$TOOLS_DIR/BLTools.efi | grep -q 'adrp[[:space:]]*xzr'; then \
+		echo "Fatal: corrupted AARCH64 GOT relaxation in AndroidToolsPkg"; \
 		exit 1; \
 	fi
 	mkdir -p ./build

@@ -74,6 +74,7 @@ Ext4RetrieveDirent (
   DivU64x32Remainder (DirInoSize, Partition->BlockSize, &BlockRemainder);
   if(BlockRemainder != 0) {
     // Directory inodes need to have block aligned sizes
+    FreePool (Buf);
     return EFI_VOLUME_CORRUPTED;
   }
 
@@ -94,11 +95,11 @@ Ext4RetrieveDirent (
       UINTN           RemainingBlock;
 
       Entry = (EXT4_DIR_ENTRY *)b;
-      ASSERT (Entry->rec_len != 0);
-
       RemainingBlock = Partition->BlockSize - (b - Buf);
 
-      if(Entry->name_len > RemainingBlock || Entry->rec_len > RemainingBlock) {
+      if(Entry->rec_len < EXT4_MIN_DIR_ENTRY_LEN || Entry->rec_len % 4 != 0 ||
+         Entry->rec_len > RemainingBlock ||
+         Entry->name_len + EXT4_MIN_DIR_ENTRY_LEN > Entry->rec_len) {
         // Corrupted filesystem
         // TODO: Do the proper ext4 corruption detection thing and dirty the filesystem.
         FreePool (Buf);
