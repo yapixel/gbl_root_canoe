@@ -268,7 +268,8 @@ RenderRows (IN UINTN First, IN UINTN Last)
   for (Row = First; Row <= Last; Row++) {
     for (Column = 0; Column < mPageColumns; Column++) {
       MENU_CELL *Cell = &mCells[Row * mColumns + Column];
-      UINTN Glyph = Cell->Character ? Cell->Character - L' ' : 0;
+      UINTN Glyph = (Cell->Character >= L' ' && Cell->Character <= L'~') ?
+                    Cell->Character - L' ' : 0;
       EFI_GRAPHICS_OUTPUT_BLT_PIXEL Foreground = Color (Cell->Attribute & 15);
       EFI_GRAPHICS_OUTPUT_BLT_PIXEL Background = Color (Cell->Attribute >> 4);
       for (Y = 0; Y < LINE_HEIGHT * mScale; Y++) {

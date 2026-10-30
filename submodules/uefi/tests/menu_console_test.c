@@ -177,7 +177,10 @@ static void reset(unsigned width, unsigned height) {
   FlushCalls = CursorCalls = ClearCalls = PositionCalls = 0; StallTime = 0;
   Info.HorizontalResolution = width; Info.VerticalResolution = height;
   Info.PixelFormat = PixelBltOnly;
-  if (width <= 8192 && height <= 8192) Screen = calloc((size_t)width * height, sizeof(*Screen));
+  if (width <= 8192 && height <= 8192) {
+    Screen = calloc((size_t)width * height, sizeof(*Screen));
+    assert(Screen != NULL);
+  }
 }
 static void begin(void) { MenuConsoleInitialize(); MenuConsoleClear(); }
 static void page(void) {
