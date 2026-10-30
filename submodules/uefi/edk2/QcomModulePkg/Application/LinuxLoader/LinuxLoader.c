@@ -244,6 +244,7 @@ LinuxLoaderEntry (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
   }
 
   {
+    BOOLEAN Chainloaded = SfbFatStackAlreadyPresent ();
     UINT8   MenuRequested;
     UINT32  IsAllowUnlock = FALSE;
 
@@ -262,13 +263,15 @@ LinuxLoaderEntry (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
      * Volume Up (the official recovery key slot) opens the boot menu; no Volume
      * Up within the window launches the saved default entry.
      */
-    MenuRequested = IsAllowUnlock ? WaitForVolumeUpKey (1000) : FALSE;
+    MenuRequested = Chainloaded
+                      ? TRUE
+                      : (IsAllowUnlock ? WaitForVolumeUpKey (1000) : FALSE);
     DEBUG ((EFI_D_INFO, "SFB: power-on volume-up detected=%u\n", MenuRequested));
 
     /* With OEM unlocking disabled, the module-managed Android entry can be
      * loaded directly from raw efisp. Any missing/corrupt/failed image falls
      * through to the unchanged full stack and recovery menu below. */
-    if (!IsAllowUnlock && SfbDefaultIsFastBoot ()) {
+    if (!Chainloaded && !IsAllowUnlock && SfbDefaultIsFastBoot ()) {
       Status = LaunchFastBootImage ();
       DEBUG ((EFI_D_ERROR, "SFB: raw fast boot returned: %r\n", Status));
     }

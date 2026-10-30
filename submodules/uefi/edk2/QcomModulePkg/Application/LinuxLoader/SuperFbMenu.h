@@ -148,6 +148,10 @@ typedef enum {
 EFI_STATUS
 SfbStartFatStack (VOID);
 
+/* TRUE when an outer super-fastboot loader already started the driver stack. */
+BOOLEAN
+SfbFatStackAlreadyPresent (VOID);
+
 /*
  * *Handles must be released with FreePool ().
  *

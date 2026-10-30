@@ -117,6 +117,16 @@ SfbConnectAll (VOID)
   FreePool (Handles);
 }
 
+BOOLEAN
+SfbFatStackAlreadyPresent (VOID)
+{
+  VOID  *Existing = NULL;
+
+  return (BOOLEAN)(!EFI_ERROR (gBS->LocateProtocol (&mSfbDriverTagGuid,
+                                                    NULL,
+                                                    &Existing)));
+}
+
 EFI_STATUS
 SfbStartFatStack (VOID)
 {
@@ -128,6 +138,11 @@ SfbStartFatStack (VOID)
     /* Re-run the connection pass only: media may have appeared since, and a USB
      * drive may have just been inserted (or a host cable attached). */
     SfbConnectAll ();
+    return EFI_SUCCESS;
+  }
+
+  if (SfbFatStackAlreadyPresent ()) {
+    /* Chainloaded from an outer BDS that already started DiskIo/FAT/EXT4. */
     return EFI_SUCCESS;
   }
 

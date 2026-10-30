@@ -238,8 +238,61 @@ EFI_STATUS SfbLaunchEntry(CONST SFB_BOOT_ENTRY *Entry, BOOLEAN Temp, BOOLEAN Cle
 }
 VOID SfbReportStatus(CONST CHAR16 *What, EFI_STATUS Status) {}
 
+static BOOLEAN outer_tag_present;
+#ifndef DEBUG
+#define DEBUG(x) ((void)0)
+#endif
+static unsigned uc_inits, diskio_inits, fat_inits, ext4_inits, connect_calls, tag_installs;
+static EFI_STATUS EFIAPI LocateProtocolStub(EFI_GUID *Protocol, VOID *Registration, VOID **Interface) {
+  if (outer_tag_present) { *Interface = (VOID *)(UINTN)1; return EFI_SUCCESS; }
+  return EFI_NOT_FOUND;
+}
+static EFI_STATUS EFIAPI InstallProtocolStub(EFI_HANDLE *Handle, EFI_GUID *Protocol,
+                                             EFI_INTERFACE_TYPE Type, VOID *Interface) {
+  tag_installs++;
+  *Handle = (EFI_HANDLE)(UINTN)(0x1000 + tag_installs);
+  return EFI_SUCCESS;
+}
+EFI_STATUS EFIAPI InitializeUnicodeCollationEng(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+  uc_inits++; return EFI_SUCCESS;
+}
+EFI_STATUS EFIAPI InitializeDiskIo(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+  diskio_inits++; return EFI_SUCCESS;
+}
+EFI_STATUS EFIAPI FatEntryPoint(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+  fat_inits++; return EFI_SUCCESS;
+}
+EFI_STATUS EFIAPI Ext4EntryPoint(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+  ext4_inits++; return EFI_SUCCESS;
+}
+VOID SfbConnectAll(VOID) { connect_calls++; }
+
+#include "sfb_fat.inc"
 #include "sfb_entries.inc"
 #include "sfb_menu.inc"
+
+static void ChainloadFatStackTests(void)
+{
+  Init();
+  bs.LocateProtocol = LocateProtocolStub;
+  bs.InstallProtocolInterface = InstallProtocolStub;
+  outer_tag_present = TRUE;
+  mSfbFatStackStarted = FALSE;
+  uc_inits = diskio_inits = fat_inits = ext4_inits = connect_calls = tag_installs = 0;
+
+  assert(SfbFatStackAlreadyPresent() == TRUE);
+  assert(SfbStartFatStack() == EFI_SUCCESS);
+  assert(!mSfbFatStackStarted);
+  assert(uc_inits == 0 && diskio_inits == 0 && fat_inits == 0 && ext4_inits == 0);
+  assert(connect_calls == 0 && tag_installs == 0);
+
+  outer_tag_present = FALSE;
+  assert(SfbFatStackAlreadyPresent() == FALSE);
+  assert(SfbStartFatStack() == EFI_SUCCESS);
+  assert(mSfbFatStackStarted);
+  assert(uc_inits == 1 && diskio_inits == 1 && fat_inits == 1 && ext4_inits == 1);
+  assert(connect_calls == 1 && tag_installs == 3);
+}
 
 static int Str16Eq(CONST CHAR16 *a, CONST CHAR16 *b)
 {
@@ -427,6 +480,7 @@ int main(void)
   Init(); Add(0, SCAN_NULL);
   assert(AtUiWaitForKey(0) == AtKeySelect && !animate_calls);
   BootMenuVendorFastbootTests();
-  puts("PASS: undebounced volume taps/holds/redraw backlog, direction changes, boundary flush, debounced power confirm, drained power repeats, timeout/errors, continuous idle animation, non-blocking Fastboot actions incl. exit row, vendor fastboot main menu, slow-work quiet accounting");
+  ChainloadFatStackTests();
+  puts("PASS: undebounced volume taps/holds/redraw backlog, direction changes, boundary flush, debounced power confirm, drained power repeats, timeout/errors, continuous idle animation, non-blocking Fastboot actions incl. exit row, vendor fastboot main menu, chainload driver guard, slow-work quiet accounting");
   return 0;
 }
